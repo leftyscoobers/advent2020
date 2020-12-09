@@ -51,3 +51,18 @@ these are 15 and 47, producing 62.
 
 """
 
+for i, n in enumerate(data):
+    start = n
+    end = n
+    sum_vals = n
+    next_i = i + 1
+    while sum_vals < v:
+        end = data[next_i]
+        sum_vals += end
+        next_i += 1
+
+    if sum_vals == v:
+        print(f"Found set: start = {start}, end = {end}")
+        sum_slice = data[i:next_i]
+        print(f"Part 2: min + max = {min(sum_slice) + max(sum_slice)}") # 75253258 too high
+        break
