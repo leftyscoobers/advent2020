@@ -73,6 +73,7 @@ parsed_rule_dict = dict([(parse_rule(r)) for r in raw_data])
 
 dead_ends = [k for k, v in parsed_rule_dict.items() if len(v) == 0]
 
+
 # Now follow the paths...
 def get_paths(graph_dict, ct_clr, path=[]):
     path = path + [ct_clr]
@@ -88,20 +89,37 @@ def get_paths(graph_dict, ct_clr, path=[]):
                     paths.append(p)
     return paths
 
-tp = get_paths(parsed_rule_dict, (0, 'dim beige')) # Ok... now figure out the counting.
+paths = get_paths(parsed_rule_dict, (1, 'dim beige'))
 
-# Get bag counts from paths. SHIT.... This is double counting things.
-def count_from_path(path):
-    mult = 1
-    total_bags = 0
-    for n in [p[0] for p in path]:
-        if n > 0:
-            total_bags += mult * n
-            mult *= n
-    return total_bags
+#### ARGH. I just can't figure out how to carry this multiplier through and not double count. SHIT. THIS IS A MESS. QUITTING FOR NOW.
+def sum_children(graph_dict, ct_clr, multipliers=[1], bags = 0):
+    path = path + [ct_clr]
+    paths = []
+    color = ct_clr[1]
+    if len(graph_dict[color]) == 0:
+        return bags, multipliers
+    else:
+        for n, c in graph_dict[color]:
+            if c not in [p[1] for p in path]:
+                next_paths = get_paths(graph_dict, (n, c), path)
+                for p in next_paths:
+                    paths.append(p)
+    return paths
 
-all_paths = get_paths(parsed_rule_dict, (0, 'shiny gold'))
-bags_by_path = [count_from_path(path) for path in all_paths]
+paths = get_paths(parsed_rule_dict, (1, 'dim beige'))
+
+# # Get bag counts from paths. SHIT.... This is double counting things.
+# def count_from_path(path):
+#     mult = 1
+#     total_bags = 0
+#     for n in [p[0] for p in path]:
+#         if n > 0:
+#             total_bags += mult * n
+#             mult *= n
+#     return total_bags
+#
+# all_paths = get_paths(parsed_rule_dict, (0, 'shiny gold'))
+# bags_by_path = [count_from_path(path) for path in all_paths]
 
 print(f"Part 2: Total bags to pack = {sum(bags_by_path)}") # 1664
 ##### The above does not work - it's double-counting bags because it's summing by path but paths "overlap" :-(
