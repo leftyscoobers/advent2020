@@ -30,7 +30,7 @@ diffs = [i_2 - i_1 for i_1, i_2 in zip(first_adapt, second_adapt)]
 count_1 = diffs.count(1)
 count_3 = diffs.count(3)
 
-print(f"Part 1: {count_1 * count_3}")
+print(f"Part 1: {count_1 * count_3}")  # 2080
 
 """
 PART 2
@@ -54,26 +54,34 @@ What is the total number of distinct ways you can arrange the adapters to connec
 """
 
 # Right.... graphs.
-d2 = [0] + data[:] + [max(data) + 3]
+device = max(data) + 3
+d2 = [0] + data[:] + [device]
 gd = {}
-
 for i, a in enumerate(d2):
     d2_remain = d2[(i+1):]
-    gd[a] = [i for i in d2_remain if (i - a) < 4]
+    gd[a] = [(1, i) for i in d2_remain if (i - a) < 4] # Made multiplier for later
 
+# Solve kind of like P7 part 2 - collect children at each level, add path every time we see the device jolt level
+def get_children(parents, graph_dict):
+    child_dict = {}
+    for count, parent in parents:
+        for ct, child in gd[parent]:
+            if child not in child_dict.keys():
+                child_dict[child] = count * ct
+            else:
+                child_dict[child] += count * ct
+    return [(count, node) for node, count in child_dict.items()]
 
-def get_paths(d, node, path = []):
-    path = path + [node]
-    if len(d[node]) == 0:
-        return [path]
-    paths = []
-    for n in gd[node]:
-        if n not in path:
-            new_paths = get_paths(d, n, path)
-            for np in new_paths:
-                paths.append(np)
-    return paths
+parent = [(1, 0)]  # multiplier, node
+children = get_children(parent, gd)
+paths = 0
+level = 1
+while len(children) > 0:
+    level += 1
+    children = get_children(children.copy(), gd)
 
-p = get_paths(gd, 0)
+    possible_path = [count for count, node in children if node == device]
+    if len(possible_path) > 0:
+        paths += possible_path[0]
 
-print(f"Part 2: possible adapter paths {len(p)}")
+print(f"Total paths: {paths}")
