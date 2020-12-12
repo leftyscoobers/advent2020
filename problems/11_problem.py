@@ -24,7 +24,7 @@ occupied?
 import numpy as np
 from astropy.convolution import convolve
 
-raw_data = open('11_test.txt', 'r').readlines()
+raw_data = open('11_input.txt', 'r').readlines()
 
 # Preprocess to create matrix of 0, 1, null
 data = []
@@ -76,72 +76,101 @@ many seats end up occupied?
 """
 
 # So much for convolutions? Doesn't appear to help with this view angle bit.
-def check_neighbors(slope_array):
-    if len(slope_array) == 0:
-        return 0
-    else:
-        count_neighbors = np.nansum(slope_array)
-        if count_neighbors > 0:
-            return 1
-        else:
-            return 0
+# Ugh. Just go back to the matrix with strings
+def count_seats(data):
+    return sum([row.count('#') for row in data])
 
-# God damn. Just do it the messy way.
-def check_diag(ns, ew, data):
-    diag_sum = 0
-    if len(ns) > 0 and len(ew) > 0 and np.sum(ns) > -1 and np.sum(ew) > -1:
-        val_array = []
-        for i in range(min(len(ns), len(ew))):
-            val_at_seat = seats[ns[i]][ew[i]]
-            val_array.append(val_at_seat)
-        if np.nansum(val_array) > 0:
-            diag_sum = 1
-    return diag_sum
+data = [list(line.strip()) for line in raw_data]
+nrow = len(data)
+ncol = len(data[0])
+new_seats = [list(line.strip()) for line in raw_data]
+orig_seats_filled = count_seats(data)
+diff = 100
+while diff != 0:
+    for r in range(nrow):
+        for c in range(ncol):
+            if data[r][c] != '.':
+                visible_filled_seats = 0
+                # North
+                r_ind = r - 1
+                seat = '.'
+                while r_ind >= 0 and seat == '.':
+                    seat = data[r_ind][c]
+                    r_ind -= 1
+                if seat == '#':
+                    visible_filled_seats += 1
+                # South
+                r_ind = r + 1
+                seat = '.'
+                while r_ind < nrow and seat == '.':
+                    seat = data[r_ind][c]
+                    r_ind += 1
+                if seat == '#':
+                    visible_filled_seats += 1
+                # West
+                c_ind = c - 1
+                seat = '.'
+                while c_ind >= 0 and seat == '.':
+                    seat = data[r][c_ind]
+                    c_ind -= 1
+                if seat == '#':
+                    visible_filled_seats += 1
+                # East
+                c_ind = c + 1
+                seat = '.'
+                while c_ind < ncol and seat == '.':
+                    seat = data[r][c_ind]
+                    c_ind += 1
+                if seat == '#':
+                    visible_filled_seats += 1
+                # Northwest I hate this but I don't care enough to do it differently.
+                r_ind = r - 1
+                c_ind = c - 1
+                seat = '.'
+                while r_ind >= 0 and c_ind >= 0 and seat == '.':
+                    seat = data[r_ind][c_ind]
+                    r_ind -= 1
+                    c_ind -= 1
+                if seat == '#':
+                    visible_filled_seats += 1
+                # Northeast
+                r_ind = r - 1
+                c_ind = c + 1
+                seat = '.'
+                while r_ind >= 0 and c_ind < ncol and seat == '.':
+                    seat = data[r_ind][c_ind]
+                    r_ind -= 1
+                    c_ind += 1
+                if seat == '#':
+                    visible_filled_seats += 1
+                # Southwest
+                r_ind = r + 1
+                c_ind = c - 1
+                seat = '.'
+                while r_ind < nrow and c_ind >= 0 and seat == '.':
+                    seat = data[r_ind][c_ind]
+                    r_ind += 1
+                    c_ind -= 1
+                if seat == '#':
+                    visible_filled_seats += 1
+                # Southeast
+                r_ind = r + 1
+                c_ind = c + 1
+                seat = '.'
+                while r_ind < nrow and c_ind < ncol and seat == '.':
+                    seat = data[r_ind][c_ind]
+                    r_ind += 1
+                    c_ind += 1
+                if seat == '#':
+                    visible_filled_seats += 1
+                if visible_filled_seats == 0:
+                    new_seats[r][c] = '#'
+                if visible_filled_seats > 4:
+                    new_seats[r][c] = 'L'
+    new_filled = count_seats(new_seats)
+    diff = new_filled - orig_seats_filled
+    print(diff)
+    orig_seats_filled = new_filled
+    data = [row + [] for row in new_seats]  # list.copy() not working? Still pointing at old list. Ugh.
 
-seats = np.array(data)
-nrow = len(seats)
-ncol = len(seats[0])
-
-seats_filled = np.nansum(seats)
-seat_diff = 100
-i = 0
-while i < 100 and seat_diff != 0:
-    i += 1
-    new_seats = seats.copy()
-    for row in range(nrow):
-        for col in range(ncol):
-            if not np.isnan(new_seats[row][col]):
-                if col > 0:
-                    west = check_neighbors(seats[row][:col])
-                    east = check_neighbors(seats[row][(col + 1):])
-                else:
-                    west = 0
-                    east = 0
-                if row > 0:
-                    north = check_neighbors(seats[:row, col])
-                    south = check_neighbors(seats[(row + 1):, col])
-                else:
-                    north = 0
-                    south = 0
-
-                n = np.arange(0, row)[::-1]
-                s = np.arange(row+1, nrow)
-                w = np.arange(0, col)[::-1]
-                e = np.arange(col+1, ncol)
-
-                north_west = check_diag(n, w, seats)
-                north_east = check_diag(n, e, seats)
-                south_west = check_diag(s, w, seats)
-                south_east = check_diag(s, e, seats)
-
-                total_neighbors_visible = west + east + north + south + north_west + north_east + south_west + south_east
-                if total_neighbors_visible == 0:
-                    new_seats[row][col] = 1
-                elif total_neighbors_visible > 4:
-                    new_seats[row][col] = 0
-    new_seats_filled = np.nansum(new_seats)
-    seat_diff = new_seats_filled - seats_filled
-    seats = new_seats.copy()
-    seats_filled = new_seats_filled
-    print(seat_diff)
-
+print(f"Part 2: Seats filled {new_filled}")
