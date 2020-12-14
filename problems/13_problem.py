@@ -35,7 +35,7 @@ def good_time_check(time, bus_pairs):
 
 # Now split the bus list differently
 string_bus = list(data[1].strip().split(','))
-bus_min = [(t, int(b)) for t, b in enumerate(string_bus) if b != 'x']
+bus_min = [(t % int(b), int(b)) for t, b in enumerate(string_bus) if b != 'x']
 
 position = 0
 m = 1
@@ -50,18 +50,21 @@ while not time_is_good:
         if good_time_check(t, list_to_check):
             print(list_to_check)
             max_mod_num *= list_to_check[-1][1]  # Now increment by next bus as well
-            print(max_mod_num)
             index += 1
             list_to_check.append(bus_min[index])
             position = t
-            print(position)
+            print(f"Mod: {max_mod_num}, Pos: {position}")
             m = 1
         else:
             m += 1
+            if m % 100 == 0:
+                print(f"m status: {m}")
 
     t = position + m * max_mod_num
     time_is_good = good_time_check(t, list_to_check)
     m += 1
+    if m % 100 == 0:
+        print(f"m status: {m}")
 
 print(f"Found time {t}")
 
