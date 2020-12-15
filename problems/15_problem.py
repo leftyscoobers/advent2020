@@ -6,57 +6,37 @@ https://adventofcode.com/2020/day/15
 # After start string, n = 0 if prev n never occurred before. n = last_n - last_time_seen for n that has occurred before
 # Find n at 2020
 start_str = '1,0,16,5,17,4'
-start = [int(x) for x in start_str.split(',')]
 
-# Initialize with start list
-val_record = dict([(n, [t+1]) for t, n in enumerate(start)])
+def get_last_value(start_str, end_turn):
+    start = [int(x) for x in start_str.split(',')]
+    val_record = dict([(n, (-1,t+1)) for t, n in enumerate(start)]) # Keep only two most recent times observed.
 
-# Loop through and update the dict. (This feels so sloppy...)
-prev_value = start[-1]
-prev_turn = len(start)
-while prev_turn != 2020:
-    turn = prev_turn + 1
-    if len(val_record[prev_value]) == 1:
-        value = 0
-    else:
-        turn_last_saw = val_record[prev_value][-2]
-        value = prev_turn - turn_last_saw
+    prev_value = start[-1]
+    prev_turn = len(start)
+    while prev_turn != end_turn:
+        turn = prev_turn + 1
+        if turn % 1e6 == 0:
+            print(turn)
+        if val_record[prev_value][0] == -1:
+            value = 0
+        else:
+            previous_turn_pair = val_record[prev_value]
+            value = previous_turn_pair[1] - previous_turn_pair[0]
+
         if value not in val_record.keys():
-            val_record[value] = []
+            val_record[value] = (-1, turn)
+        else:
+            old_val_par = val_record[value]
+            val_record[value] = (old_val_par[1], turn)
+        prev_turn = turn
+        prev_value = value
 
-    val_record[value].append(turn)
+    return value
 
-    prev_turn = turn
-    prev_value = value
-
-print(f"Part 1: Value spoken at the 2020th turn is {value}")
+p1_value = get_last_value(start_str, 2020)
+print(f"Part 1: Value spoken at the 2020th turn is {p1_value}")
 
 # PART 2
-# Repeat but go to 30000000th number - just be lazy and copy the work above.
-# Two issues - probably slow (yes) and currently collecting all turns for each number but only need the previous two
-# NOTE - was slow but worked... took maybe 15 min. Good enough for today.
-end = 30000000
-val_record = dict([(n, [t+1]) for t, n in enumerate(start)])
-
-prev_value = start[-1]
-prev_turn = len(start)
-while prev_turn != end:
-    turn = prev_turn + 1
-    if turn % 1e4:
-        print(f"Turn {turn}")
-    if len(val_record[prev_value]) == 1:
-        value = 0
-    else:
-        turn_last_saw = val_record[prev_value][-2]
-        value = prev_turn - turn_last_saw
-        if value not in val_record.keys():
-            val_record[value] = []
-
-    val_record[value].append(turn)
-
-    prev_turn = turn
-    prev_value = value
-
-print(f"Part 2: Value spoken at the {end}th turn is {value}")
-
-
+# Repeat but go to 30000000th number - takes < 1 min
+p2_value = get_last_value(start_str, 3e7)
+print(f"Part 1: Value spoken at the 30,000,000th turn is {p2_value}")
