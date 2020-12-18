@@ -5,7 +5,6 @@ https://adventofcode.com/2020/day/16
 import numpy as np
 
 # PART 1: Identify invalid tickets and sum the invalid values (is this one per ticket...?)
-# First, parse the file (tempted to split it manually and then read it separately but feels like cheating...)
 raw_rules = open('16_input_rules.txt', 'r').readlines()
 raw_tickets = [line.strip().split(',') for line in open('16_input_nearby.txt', 'r').readlines()]
 my_ticket = [101,179,193,103,53,89,181,139,137,97,61,71,197,59,67,173,199,211,191,131]
@@ -56,15 +55,6 @@ print(f"Part 1: Sum of invalid values: {np.sum(invalid_vals)}")
 
 def match_to_range(array, range):
     return [v for v in array if range[0] <= v <= range[1]]
-
-# Test case
-field_rules = {"class": [(0,1), (4,19)],
-            "row": [(0,5), (8,19)],
-            "seat": [(0,13), (16,19)]}
-my_ticket = [11,12,13]
-nearby = [[3, 9, 18],
-          [15, 1, 5],
-          [5, 14, 9]]
 
 
 good_tix = [t for i, t in enumerate(nearby) if i not in bad_tickets]

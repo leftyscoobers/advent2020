@@ -2,8 +2,7 @@
 https://adventofcode.com/2020/day/17
 """
 
-# I think I can go back to convolutions for this one... (see problem 11)
-# Difference from P11: 1) diff rules 2) grid grows infinitely 3) 3D
+# Difference from P11: 1) diff rules 2) grid grows infinitely 3) 3D (then 4D)
 
 # Rule 1: If 1 and 2 or 3 neighbors == 1 then stay 1 else 0
 # Rule 2: If 0 and 3 neighbors == 1 then 1 else 0
@@ -51,45 +50,27 @@ def sum_dim(grid, increment):
     return zeros
 
 
-dimensions = 3
-increments = get_increment_combos(dimensions)
-grid = zero_pad(np.array([data]), dimensions)
-cycle = 1
-while cycle < 7:
-    print(cycle)
-    new_grid = zero_pad(grid, dimensions)
-    sum_grid = np.zeros(new_grid.shape)
-    for incr in increments:
-        sum_grid += sum_dim(new_grid, incr)
-    new_grid[sum_grid == 3] = 1  # Regardless of i_state, 3 neighbors = 1
-    new_grid[sum_grid < 2] = 0  # Note keep initial state if n = 2 (and 1 if n = 3) else 0
-    new_grid[sum_grid > 3] = 0
-    grid = new_grid.copy()  # Could trim off rows or cols that are all zeros but do we actually care? Won't change the solution.
-    cycle += 1
-    cells_filled = np.sum(grid)
-    print(cells_filled)
+def calculate_cells_filled(data, dimensions=3, cycles=6):
+    increments = get_increment_combos(dimensions)
+    grid = zero_pad(np.array(data), dimensions)
+    cycle = 1
+    while cycle < (cycles + 1):
+        print(cycle)
+        new_grid = zero_pad(grid, dimensions)
+        sum_grid = np.zeros(new_grid.shape)
+        for incr in increments:
+            sum_grid += sum_dim(new_grid, incr)
+        new_grid[sum_grid == 3] = 1  # Regardless of i_state, 3 neighbors = 1
+        new_grid[sum_grid < 2] = 0  # Note keep initial state if n = 2 (and 1 if n = 3) else 0
+        new_grid[sum_grid > 3] = 0
+        grid = new_grid.copy()  # Could trim off rows or cols that are all zeros but do we actually care? Won't change the solution.
+        cycle += 1
 
-cells_filled = np.sum(grid)
-print(f"PART 1: Total cells filled {cells_filled}")
+    return np.sum(grid)
+
+p1_filled = calculate_cells_filled([data])
+print(f"PART 1: Total cells filled {p1_filled}") # 391
 
 # PART 2: Same deal but 4D. Would be nicer to write above as function but whatever.
-dimensions = 4
-increments = get_increment_combos(dimensions)
-grid = zero_pad(np.array([[data]]), dimensions)
-cycle = 1
-while cycle < 7:
-    print(cycle)
-    new_grid = zero_pad(grid, dimensions)
-    sum_grid = np.zeros(new_grid.shape)
-    for incr in increments:
-        sum_grid += sum_dim(new_grid, incr)
-    new_grid[sum_grid == 3] = 1  # Regardless of i_state, 3 neighbors = 1
-    new_grid[sum_grid < 2] = 0  # Note keep initial state if n = 2 (and 1 if n = 3) else 0
-    new_grid[sum_grid > 3] = 0
-    grid = new_grid.copy()  # Could trim off rows or cols that are all zeros but do we actually care? Won't change the solution.
-    cycle += 1
-    cells_filled = np.sum(grid)
-    print(cells_filled)
-
-cells_filled = np.sum(grid)
-print(f"PART 1: Total cells filled {cells_filled}")
+p2_filled = calculate_cells_filled([[data]], dimensions=4)
+print(f"PART 1: Total cells filled {p2_filled}")  # 2264
