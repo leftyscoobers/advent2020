@@ -51,7 +51,7 @@ def try_substitute(original_rule, value_to_replace, replacement_rule):
                 for r in replacement_rule:
                     new.append(' '.join([r if x == value_to_replace else x for x in o]))
         merged = [merge_rules(x) if not contains_num(x) else x for x in new]
-        return merged
+        return list(set(merged))
 
 # Replace all the run numbers in the rules until all are only a's and b's.
 # Note: finding rules for rule 0 takes a while (~1 min), but the rest is fast.
@@ -77,3 +77,57 @@ rule0 = set(clean_rules['0'])  # All rules are 24 char long.
 msg_match0 = [m for m in msgs if m in rule0]
 
 print(f"PART 1: messages that match rule 0 {len(msg_match0)}")  # 285
+
+# PART 2: Completely replace rules 8: 42 and 11: 42 31 with the following, which creates an infinite loop...
+
+# rules['8'] = ['42', '42 8']
+# rules['11'] = ['42 31', '42 11 31']
+
+# Rule 8 is basically now some combination of 42's
+# Rule 11 is now some combination of 42's followed by some combination of 31's, equal amounts of each.
+# Rule 0 is 8 then 11.
+# SO basically 42s * n then (42s * m then 31s * m) -> 42 * (n + m) then 31 * m, which really means we can have
+# a bunch of 42s and then 31s but no mixing of these (like 42 42 42 31 42 = bad)
+
+# Don't need to check any messages that we already verified (previous working messages still work):
+msgs_remain = [m for m in msgs if m not in rule0] # 195
+r31 = set(clean_rules['31'])
+r42 = set(clean_rules['42'])
+
+# There is no overlap between 31 and 42 sets, so let's map messages back to 42 and 31:
+def parse_msg_by_8s(message):
+    m_len = len(message)
+    pieces = int(m_len / 8)
+    return [message[i*8:(i*8 + 8)] for i in range(pieces)]
+
+
+def convert_to_31_42(message):
+    global r31
+    global r42
+    parsed = parse_msg_by_8s(message)
+    converted = [31 if x in r31 else x for x in parsed]
+    converted = [42 if x in r42 else x for x in converted]
+    return converted
+
+
+def msg_valid(message):
+    conv = convert_to_31_42(message)
+
+    # Check counts - can't have more 31's than 42s (or equal amounts)
+    if conv.count(42) <= conv.count(31) or conv.count(31) == 0:
+        return False
+
+    # Want consecutive 42s, then 31s
+    max_i_42 = max([i for i, v in enumerate(conv) if v == 42])
+    min_i_31 = min([i for i, v in enumerate(conv) if v == 31])
+    if max_i_42 < min_i_31:
+        return True
+    else:
+        return False
+
+good_messages = msg_match0.copy()
+for m in msgs_remain:
+    if msg_valid(m):
+        good_messages.append(m)
+
+print(f"PART 2: Messages that now match {len(good_messages)}")
