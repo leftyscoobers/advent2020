@@ -46,6 +46,7 @@ class Tile:
             new_tile = []
             for j in range(self.size):
                 cur_values = [row[j] for row in mat]  # Get column values
+                cur_values.reverse()
                 new_tile.append(cur_values)  # Make column into row
             i += 1
             mat = new_tile
@@ -129,7 +130,7 @@ image = used_tiles[t1.tid].remove_edges()
 
 # Fill in first column by matching lowest tile "bottom", fill in rest of cols by matching to the right sides
 dim = int(len(raw) ** 0.5)
-for c in range(2):
+for c in range(dim):
     for r in range(dim):
         if image_key[r, c] != '0000':
             break
@@ -167,20 +168,3 @@ for c in range(2):
                     for t_i, i_i in enumerate(image_rows_affected):
                         image[i_i] += de_edged[t_i]
                 break
-
-
-# Rotation isn't working quite right. Test here:
-t = ['123', '456', '789']
-increments = 2
-
-mat = [list(row) for row in t]
-i = 0
-while i < increments:
-    new_tile = []
-    for j in range(len(t)):
-        cur_values = [row[j] for row in mat]  # Get column values
-        new_tile.append(cur_values)  # Make column into row
-    i += 1
-    mat = new_tile.copy()
-    print(mat)
-
