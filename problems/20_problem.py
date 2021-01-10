@@ -92,7 +92,7 @@ print(f"PART 1: Corner Tile ID product = {np.prod([int(i) for i in corners])}")
 # Start with one corner and figure out it's orientation as the top left corner for now.
 # Gonna be sloppy. Oh well.
 t1 = Tile(corners[0], raw[corners[0]])
-t1_edge = t1.flip_vertical().get_edges()  # Only flip one way - flip potential matches both ways
+t1_edge = t1.get_edges()
 
 t1_matches = matches[t1.tid]
 t1_edge_index = []
@@ -104,67 +104,144 @@ for m in t1_matches:
         index = t1_edge.index(list(intersect)[0])
         t1_edge_index.append(index)
 
-t1_rotation = min(t1_edge_index) + 1
+if min(t1_edge_index) == 1:
+    t1_rotation = 4  # Really 0 but this is fine
+elif min(t1_edge_index) == 0 and max(t1_edge_index) == 3:
+    t1_rotation = 2
+else:
+    t1_rotation = min(t1_edge_index) + 1
 
 # Now track both which tile goes where like an image key and build the image (no edges)
-def get_match(tile_id, edge):
+def get_match(tile_id, edge, side):
     global matches, raw
-    match_ids = matches[tile_id]
-    for m in match_ids:
-        m_tile = Tile(m, raw[m])
-        m_h = m_tile.flip_horizontal().get_edges()
-        m_v = m_tile.flip_vertical().get_edges()
-        if edge in m_h:
-            return 'horizontal', m_h.index(edge)
-        elif edge in m_v:
-            return 'vertical', m_v.index(edge)
-        else:
-            print("No match found")
-            return None
+    m_tile = Tile(tile_id, raw[tile_id])
+    flip = ''
+    rotate = 0
+    for rotation in range(1, 5):
+        rotated = m_tile.rotate_90(increments=rotation)
+        m_o = rotated.get_edges()[side]
+        m_h = rotated.flip_horizontal().get_edges()[side]
+        m_v = rotated.flip_vertical().get_edges()[side]
+        if edge == m_o:
+            flip = 'none'
+            rotate = rotation
+        elif edge == m_h:
+            flip = 'horizontal'
+            rotate = rotation
+        elif edge == m_v:
+            flip = 'vertical'
+            rotate = rotation
+        if flip != '':
+            break
+    return flip, rotate
 
-image_key = np.array([['0000'] * 12] * 12)
+dim = int(len(raw) ** 0.5)
+image_key = np.array([['0000'] * dim] * dim)
 image_key[0, 0] = t1.tid
 
-used_tiles = {t1.tid: t1.flip_vertical().rotate_90(increments=t1_rotation)}
+used_tiles = {t1.tid: t1.rotate_90(increments=t1_rotation)}
 image = used_tiles[t1.tid].remove_edges()
 
 # Fill in first column by matching lowest tile "bottom", fill in rest of cols by matching to the right sides
-dim = int(len(raw) ** 0.5)
 for c in range(dim):
     for r in range(dim):
-        if image_key[r, c] != '0000':
-            break
-        if c == 0:
-            match_to_tile_id = image_key[(r - 1), c]
-            match_to_tile = used_tiles[match_to_tile_id]
-            match_edge = match_to_tile.get_edges()[2]
-            orientation = 0
+        print(f"Col: {c}, Row: {r}")
+        # if image_key[r, c] != '0000':  # Why does this break both loops and not just inner?
+        #     break
+        if (r, c) != (0, 0):
+            if c == 0:
+                match_to_tile_id = image_key[(r - 1), c]
+                match_to_tile = used_tiles[match_to_tile_id]
+                match_edge = match_to_tile.get_edges()[2]
+                orientation = 0
+            else:
+                match_to_tile_id = image_key[r, (c-1)]
+                match_to_tile = used_tiles[match_to_tile_id]
+                match_edge = match_to_tile.get_edges()[1]
+                orientation = 3
+
+            for m in matches[match_to_tile_id]:
+                m_tile = Tile(m, raw[m])
+                check_match = get_match(m, match_edge, side=orientation)
+                if check_match != ('', 0):
+                    rotated = m_tile.rotate_90(increments=check_match[1])
+                    print(f"Match: {m}")
+                    if check_match[0] == 'none':
+                        flipped = rotated
+                    elif check_match[0] == 'horizontal':
+                        flipped = rotated.flip_horizontal()
+                    else:
+                        flipped = rotated.flip_vertical()
+
+                    used_tiles[m] = flipped
+                    image_key[r, c] = m
+                    print(image_key)
+                    de_edged = flipped.remove_edges()
+                    if c == 0:
+                        image += de_edged
+                    else:
+                        image_rows_affected = [r * 8 + i for i in range(len(de_edged))]
+                        for t_i, i_i in enumerate(image_rows_affected):
+                            image[i_i] += de_edged[t_i]
+
+
+# And now, finally, find the damn monsters, row by row I guess?
+# Can't think of a nice way to do this. Gonna be a mess again.
+monster_string = ['                  # ', '#    ##    ##    ###', ' #  #  #  #  #  #   ']
+monster_cols = len(monster_string[0])
+monster_rows = len(monster_string)
+
+# Reduce monster to indices that match # since we don't care about the other characters.
+def index_pounds(string):
+    return [i for i, c in enumerate(list(string)) if c == '#']
+
+monster = [index_pounds(m) for m in monster_string]
+
+
+def contains_monster(image_rows):
+    global monster
+    row_pounds = [index_pounds(row) for row in image_rows]
+
+    def compare_row(monster, image):
+        matched = [i for i in image if i in monster]
+        if matched == monster:
+            return True
         else:
-            match_to_tile_id = image_key[r, (c-1)]
-            match_to_tile = used_tiles[match_to_tile_id]
-            match_edge = match_to_tile.get_edges()[1]
-            orientation = 3
+            return False
 
-        for m in matches[match_to_tile_id]:
-            m_tile = Tile(m, raw[m])
-            check_match = get_match(m, match_edge)
-            if check_match is not None:
-                print(f"Match: {m}")
-                if check_match[0] == 'horizontal':
-                    flipped = m_tile.flip_horizontal()
-                    rotated = flipped.rotate_90(increments=(4 - abs(orientation - check_match[1])))
-                else:
-                    flipped = m_tile.flip_vertical()
-                    rotated = flipped.rotate_90(increments=(4 - abs(orientation - check_match[1])))
+    return all([compare_row(m, i) for m, i in zip(monster, row_pounds)])
 
-                used_tiles[m] = rotated
-                image_key[r, c] = m
-                print(image_key)
-                de_edged = flipped.remove_edges()
-                if c == 0:
-                    image += de_edged
-                else:
-                    image_rows_affected = [r * 8 + i for i in range(len(de_edged))]
-                    for t_i, i_i in enumerate(image_rows_affected):
-                        image[i_i] += de_edged[t_i]
+
+monsters_found = 0
+
+# Set up for current image, then deal with flips and rotations
+col_max = len(image[0]) - monster_cols
+row_max = len(image) - monster_rows
+
+image_tile = Tile('base', image)
+base_tiles = [image_tile, image_tile.flip_vertical(), image_tile.flip_horizontal()]
+for bt in base_tiles:
+    for rot in range(4):
+        if rot == 0:
+            tile_img = bt.tile
+        else:
+            tile_img = bt.rotate_90(increments=rot).tile
+
+        for c in range(col_max):
+            for r in range(row_max):
+                image_rows = [row[c:(c+monster_cols)] for row in tile_img[r:(r+monster_rows)]]
+                has_monster = contains_monster(image_rows)
+                if has_monster:
+                    monsters_found += 1
+                    print(f"Found monster {monsters_found}!")
+        if __name__ == '__main__':
+            if monsters_found > 0:
+                bt_idx = base_tiles.index(bt)
+                print(f"Found monsters with base_tile {bt_idx} and rotation {r}")
                 break
+
+# Now find pounds that are not part of monsters for final answer
+pounds_in_monster = sum([len(m) for m in monster])
+pounds_in_image = sum([len(index_pounds(i_r)) for i_r in image])
+
+print(f"Part 2... at last... has {pounds_in_image - pounds_in_monster * monsters_found} waves or whatever.")
